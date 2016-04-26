@@ -1,3 +1,8 @@
 from django.contrib import admin
+from cars.models import HondaCar
 
-# Register your models here.
+
+class HondaCarAdmin(admin.ModelAdmin):
+    pass
+
+admin.site.register(HondaCar, HondaCarAdmin)
