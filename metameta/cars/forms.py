@@ -78,6 +78,7 @@ class SecondCrazyForm(ModelForm):
         for integer_field in integer_fields:
             clean_value = cleaned_data.get(integer_field.name)
             if clean_value and clean_value % 3 == 0:
+                # add_error added in 1.7 :)
                 self.add_error(integer_field.name, 'What? No!')
                 # raise ValidationError('What? No!')
         # Filter get_fields with these flags (True/False):
@@ -95,3 +96,9 @@ class SecondCrazyForm(ModelForm):
     class Meta:
         model = HondaCar
         fields = ['colour', 'model', 'cupholders']
+
+# further metaclass reading:
+# https://github.com/django/django/blob/c339a5a6f72690cd90d5a653dc108fbb60274a20/django/db/models/base.py#L67
+
+# Exercise for reader:
+# Create a form factory that does something crazy
