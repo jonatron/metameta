@@ -1,12 +1,26 @@
 from django.shortcuts import render
 
-from .forms import BaseCarForm
+from .forms import BaseCarForm, FirstCrazyForm, SecondCrazyForm
 
 
 def cars(request):
     if request.method == 'POST':
+        form = SecondCrazyForm(data=request.POST)
+    else:
+        form = SecondCrazyForm()
+
+    """
+    if request.method == 'POST':
+        form = FirstCrazyForm(data=request.POST)
+    else:
+        form = FirstCrazyForm()
+    """
+
+    """
+    if request.method == 'POST':
         form = BaseCarForm(data=request.POST)
     else:
         form = BaseCarForm()
+    """
 
     return render(request, 'cars/cars.html', {'form': form})
