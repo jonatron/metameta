@@ -1,6 +1,11 @@
+import pdb
+
 from django.core.exceptions import ValidationError
 from django.db.models.fields import IntegerField
+from django.forms.fields import IntegerField as FormIntegerField
+from django import forms
 from django.forms import ModelForm
+from django.forms.models import ModelFormMetaclass
 
 from .models import BaseCar, HondaCar, FordCar
 
@@ -58,6 +63,37 @@ FirstCrazyForm = type(
 
 # But how do we automatically not allow multiples of three on all integerfields?
 
+class NotThreeMultipleIntegerField(FormIntegerField):
+    def run_validators(self, value):
+        if value % 3 == 0:
+            raise ValidationError('U wot m8?')
+        return super(NotThreeMultipleIntegerField, self).run_validators(value)
+
+
+class CustomMeta(ModelFormMetaclass):
+    def __new__(cls, name, parents, dct):
+        plain_modelform = super(CustomMeta, cls).__new__(cls, name, parents, dct)
+        model_fields = plain_modelform._meta.model._meta.get_fields()
+        integer_fields = [
+            field for field in model_fields
+            if isinstance(field, IntegerField)
+        ]
+        for integer_field in integer_fields:
+            dct[integer_field.name] = NotThreeMultipleIntegerField(required=True)
+        new_class_with_overrides = type(name, (ModelForm, ), dct)
+        return new_class_with_overrides
+
+
+class CustomMetaForm(ModelForm):
+    __metaclass__ = CustomMeta
+
+    class Meta:
+        model = HondaCar
+        fields = ['colour', 'model', 'cupholders']
+
+
+# But how do we do that in a different way?
+
 
 class SecondCrazyForm(ModelForm):
 
@@ -82,7 +118,7 @@ class SecondCrazyForm(ModelForm):
                 self.add_error(integer_field.name, 'What? No!')
                 # raise ValidationError('What? No!')
         # Filter get_fields with these flags (True/False):
-        # f.auto_created - reverse relations and generic relations
+        # f.auto_created - reverse relations (foo_set) and generic relations
         # f.concrete - basically not relationships eg CharField, IntegerField etc
         # f.is_relation
         # f.one_to_one
@@ -96,6 +132,8 @@ class SecondCrazyForm(ModelForm):
     class Meta:
         model = HondaCar
         fields = ['colour', 'model', 'cupholders']
+
+
 
 # further metaclass reading:
 # https://github.com/django/django/blob/c339a5a6f72690cd90d5a653dc108fbb60274a20/django/db/models/base.py#L67
