@@ -10,6 +10,7 @@ from django.forms.models import ModelFormMetaclass
 from .models import BaseCar, HondaCar, FordCar
 
 
+# Zoom using cmd+= or cmd+-
 class BaseCarForm(ModelForm):
 
     def clean_colour(self):
@@ -29,6 +30,8 @@ class HondaForm(BaseCarForm):
     def clean_cupholders(self):
         cupholders = self.cleaned_data['cupholders']
 
+        # this a typical client request...
+        # and you can't say no because they pay you
         if cupholders % 3 == 0:
             raise ValidationError('What? No!')
 
@@ -41,6 +44,7 @@ class HondaForm(BaseCarForm):
 
 # We can change the Meta fields and model dynamically
 
+# First replicate the above inner Meta class
 parent_inner_meta = BaseCarForm.Meta
 inner_meta_attrs = {
     'model': HondaCar,
@@ -52,11 +56,25 @@ new_inner_meta = type(
     inner_meta_attrs
 )
 
+
+def clean_function_generator(field_name):
+    def clean_field_name(self):
+        field_val = self.cleaned_data[field_name]
+        if field_val % 3 == 0:
+            raise ValidationError('What? No!')
+        return field_val
+
+    return clean_field_name
+
+clean_cupholders = clean_function_generator('cupholders')
+
+# Then create a form using that
 FirstCrazyForm = type(
     'FirstCrazyForm',
     (BaseCarForm, ),
     {
-        'Meta': new_inner_meta
+        'Meta': new_inner_meta,
+        'clean_cupholders': clean_cupholders,
     }
 )
 
@@ -72,6 +90,7 @@ class NotThreeMultipleIntegerField(FormIntegerField):
 
 class CustomMeta(ModelFormMetaclass):
     def __new__(cls, name, parents, dct):
+        # lets make a standard ModelForm, then make a new form, inheriting from it
         plain_modelform = super(CustomMeta, cls).__new__(cls, name, parents, dct)
         model_fields = plain_modelform._meta.model._meta.get_fields()
         integer_fields = [
@@ -97,8 +116,6 @@ class CustomMetaForm(ModelForm):
 
 class SecondCrazyForm(ModelForm):
 
-    # you can dynamically create clean_{field} methods
-    # but in python it's hacky to find out the name of the current function
     def clean(self, *args, **kwargs):
         cleaned_data = super(SecondCrazyForm, self).clean(*args, **kwargs)
 
@@ -115,6 +132,7 @@ class SecondCrazyForm(ModelForm):
             clean_value = cleaned_data.get(integer_field.name)
             if clean_value and clean_value % 3 == 0:
                 # add_error added in 1.7 :)
+                # should've been there forever but nvm
                 self.add_error(integer_field.name, 'What? No!')
                 # raise ValidationError('What? No!')
         # Filter get_fields with these flags (True/False):
